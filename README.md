@@ -1,9 +1,17 @@
-# vue2-leaflet-routing-machine
+# trucking-radar
+
+## application for tracking the company's transport
+## vue2-leaflet-routing-machine
 
 ## Project setup
+
 ```
 npm install
 ```
+
+### 1.setup local server with osrm backend
+### https://github.com/Project-OSRM/osrm-backend
+### 2.Change address on 72 line ./src/components/LRoutingMachine.vue
 
 ### Compiles and hot-reloads for development
 ```
