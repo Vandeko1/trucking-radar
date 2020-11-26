@@ -1,133 +1,109 @@
 <template>
-  <div style="display: none">
-    <slot v-if="ready"></slot>
-  </div>
+    <div style="display: none;">
+        <slot v-if="ready"></slot>
+    </div>
 </template>
 
 <script>
-import L from 'leaflet'
-import { IRouter, IGeocoder, LineOptions } from 'leaflet-routing-machine'
-import { findRealParent } from 'vue2-leaflet';
+    import L from "leaflet";
+    import { findRealParent } from "vue2-leaflet";
+    import "leaflet-routing-machine";
 
-const props = {
-  visible: {
-    type: Boolean,
-    default: true
-  },
-  waypoints: {
-    type: Array,
-    required: true
-  },
-  router: {
-    type: IRouter
-  },
-  plan: {
-    type: L.Routing.Plan
-  },
-  geocoder: {
-    type: IGeocoder
-  },
-  fitSelectedRoutes: {
-    type: [String, Boolean],
-    default: 'smart'
-  },
-  lineOptions: {
-    type: LineOptions
-  },
-  routeLine: {
-    type: Function
-  },
-  autoRoute: {
-    type: Boolean,
-    default: true
-  },
-  routeWhileDragging: {
-    type: Boolean,
-    default: false
-  },
-  routeDragInterval: {
-    type: Number,
-    default: 500
-  },
-  waypointMode: {
-    type: String,
-    default: 'connect'
-  },
-  useZoomParameter: {
-    type: Boolean,
-    default: false
-  },
-  showAlternatives: {
-    type: Boolean,
-    default: false
-  },
-  altLineOptions: {
-    type: LineOptions
-  }
-}
+    export default {
+        data() {
+            return {
+                parentContainer: null,
+                ready: false,
+                routingLayer: null
+            };
+        },
+        props: {
+            waypoints: Array,
+            plan: { type: null },
+            router: { type: null },
+            geocoder: { type: null },
+            lineOptions: { type: Function },
+            altLineOptions: { type: null },
+            autoRoute: Boolean,
+            routeLine: Function,
+            waypointMode: String,
+            routeDragInterval: Number,
+            useZoomParameter: Boolean,
+            showAlternatives: Boolean,
+            routeWhileDragging: Boolean,
+            fitSelectedRoutes: [String, Boolean]
+        },
+        beforeDestroy() { return this.routingLayer ? this.routingLayer.remove() : null; },
+        methods: {
+            add() {
+                const {
+                    plan,
+                    router,
+                    geocoder,
+                    waypoints,
+                    routeLine,
+                    lineOptions,
+                    waypointMode,
+                    altLineOptions,
+                    useZoomParameter,
+                    showAlternatives,
+                    routeDragInterval,
+                    fitSelectedRoutes,
+                    routeWhileDragging
+                } = this;
 
-// const optionTestNames = [
-//   'router',
-//   'plan',
-//   'geocoder',
-//   'lineOptions',
-//   'routeLine',
-//   'altLineOptions'
-// ]
+                // this right here is some nonsense
+                // we are applying the rest operator on the result of the and operation
+                // to make sure that properties are only added to the options object
+                // if the value is defined
+                // was getting some weird error messages saying that routeLine is undefined
+                // this solves it
+                const options = {
+                    ...(plan && { plan }),
+                    ...(router && { router }),
+                    ...(geocoder && { geocoder }),
+                    ...(waypoints && { waypoints }),
+                    ...(routeLine && { routeLine }),
+                    ...(lineOptions && { lineOptions }),
+                    ...(waypointMode && {  waypointMode }),
+                    ...(altLineOptions && { altLineOptions }),
+                    ...(useZoomParameter && { useZoomParameter }),
+                    ...(showAlternatives && { showAlternatives }),
+                    ...(routeDragInterval && { routeDragInterval }),
+                    ...(fitSelectedRoutes && { fitSelectedRoutes }),
+                    ...(routeWhileDragging && { routeWhileDragging }),
+                    serviceUrl: "http://192.168.1",
+                    language: 'ru',
+                };
+                const { mapObject } = this.parentContainer;
+                this.routingLayer = L.routing.control(options);
 
-export default {
-  props,
-  name: 'LRoutingMachine',
-  data() {
-    return {
-      parentContainer: null,
-      ready: false,
-      layer: null
-    }
-  },
-  mounted() {
-    this.parentContainer = findRealParent(this.$parent)
-    this.add()
-    this.ready = true
-  },
-  beforeDestroy() {
-    return this.layer ? this.layer.remove() : null
-  },
-  methods: {
-    add () {
-      if (this.parentContainer._isMounted) {
-        const {
-          waypoints,
-          fitSelectedRoutes,
-          autoRoute,
-          routeWhileDragging,
-          routeDragInterval,
-          waypointMode,
-          useZoomParameter,
-          showAlternatives
-        } = this
+                // foward LMR events to the parent
+                this.routingLayer.on("routingstart", e => { this.$emit("routingstart", e); });
+                this.routingLayer.on("routesfound", e => { this.$emit("routesfound", e); });
+                this.routingLayer.on("routingerror", e => { this.$emit("routingerror", e); });
 
-        const options = {
-          waypoints,
-          fitSelectedRoutes,
-          autoRoute,
-          routeWhileDragging,
-          routeDragInterval,
-          waypointMode,
-          useZoomParameter,
-          showAlternatives
+                // this event is not documented as being part of the control class
+                // but it is fired by the control class if being used with a plan
+                this.routingLayer.on("waypointschanged", e => { this.$emit("waypointschanged", e); });
+
+                this.routingLayer.addTo(mapObject);
+            },
+            // foward function calls to LRM
+            getWaypoints() { return this.routingLayer.getWaypoints.apply(null, arguments); },
+            setWaypoints() { return this.routingLayer.setWaypoints.apply(null, arguments); },
+            spliceWaypoints() { return this.routingLayer.spliceWaypoints.apply(null, arguments); },
+            getPlan() { return this.routingLayer.getPlan.apply(null, arguments); },
+            getRouter() { return this.routingLayer.getRouter.apply(null, arguments); },
+            route() { return this.routingLayer.route.apply(null, arguments); }
+        },
+        mounted() {
+            this.parentContainer = findRealParent(this.$parent);
+            this.add();
+            this.ready = true;
         }
-
-        const { mapObject } = this.parentContainer
-        const routingLayer = L.Routing.control(options)
-        routingLayer.addTo(mapObject)
-        this.layer = routingLayer
-      }
-    }
-  }
-}
+    };
 </script>
-
 <style>
-  @import '../../node_modules/leaflet-routing-machine/dist/leaflet-routing-machine.css';
+    @import "../../node_modules/leaflet-routing-machine/dist/leaflet-routing-machine.css";
 </style>
