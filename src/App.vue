@@ -4,20 +4,18 @@
             <l-tile-layer :url="osmUrl" :attribution="attribution" />
             <l-routing-machine :waypoints="waypoints" :key="key"></l-routing-machine>
         </l-map>
-        <Select id="select" v-on:select="setSelected"/>
+        <Select id="select" v-on:select="setSelected" :vehicles="vehicles"/>        
     </div>
 </template>
-
 <script>
     import { LMap, LTileLayer } from "vue2-leaflet";
-
     import LRoutingMachine from "./components/LRoutingMachine.vue";
     import Select from './components/Select'
-
-    const attribution =
-        '&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors';
+    import axios from 'axios';    
+    const attribution = '&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors';
     const osmUrl = "http://{s}.tile.osm.org/{z}/{x}/{y}.png";
     export default {
+        name: "VXradar",
         components: {
             LMap,
             LTileLayer,
@@ -35,105 +33,45 @@
                 },
                 osmUrl,
                 attribution,
-                waypoints: [{
-                        lat: 48.880007,
-                        /*vxauto*/
-                        lng: 24.630000
-                    },
-                    {
-                        lat: 48.91,
-                        /*мазепи для прикладу*/
-                        lng: 24.69
-                    }
+                waypoints: [
+                    { lat: 48.91,
+                      lng: 24.69 },
+                    { lat: 48.880007,
+                      lng: 24.630000}
                 ],
-                geo: {
-                    '1': [{
-                            time: '12-03-2020T12-51-36',
-                            lat: 48.901230,
-                            lng: 24.682841
-                        },
-                        {
-                            time: '12-03-2020T12-51-36',
-                            lat: 48.899831,
-                            lng: 24.693435
-                        },
-                        {
-                            time: '12-03-2020T12-51-36',
-                            lat: 48.895190,
-                            lng: 24.710685
-                        }
-                    ],
-                    '2': [{
-                            time: '12-03-2020T12-51-36',
-                            lat: 48.894702,
-                            lng: 24.714317
-                        },
-                        {
-                            time: '12-03-2020T12-51-36',
-                            lat: 48.898516,
-                            lng: 24.729848
-                        },
-                        {
-                            time: '12-03-2020T12-51-36',
-                            lat: 48.906107,
-                            lng: 24.735518
-                        }
-                    ],
-                    '3': [{
-                            time: '12-03-2020T12-51-36',
-                            lat: 48.907155,
-                            lng: 24.734986
-                        },
-                        {
-                            time: '12-03-2020T12-51-36',
-                            lat: 48.912831,
-                            lng: 24.738344
-                        },
-                        {
-                            time: '12-03-2020T12-51-36',
-                            lat: 48.916075,
-                            lng: 24.742664
-                        }
-                    ],
-                    '4': [{
-                            time: '12-03-2020T12-51-36',
-                            lat: 48.923137,
-                            lng: 24.742742
-                        },
-                        {
-                            time: '12-03-2020T12-51-36',
-                            lat: 48.929930,
-                            lng: 24.742309
-                        },
-                        {
-                            time: '12-03-2020T12-51-36',
-                            lat: 48.931909,
-                            lng: 24.739116
-                        }
-                    ],
-                    '5': [{
-                            time: '12-03-2020T12-51-36',
-                            lat: 48.934216,
-                            lng: 24.731103
-                        },
-                        {
-                            time: '12-03-2020T12-51-36',
-                            lat: 48.932189,
-                            lng: 24.728757
-                        },
-                        {
-                            time: '12-03-2020T12-51-36',
-                            lat: 48.931316,
-                            lng: 24.726286
-                        }
-                    ],
-                }
+                data: new Array(),
+                geo: new Array(),
+                vehicles: new Array()
             };
+        },
+        mounted() {
+            axios
+              .get('http://localhost:3000/')
+              .then(response => { 
+                let data = response.data;
+                let length = data.length;
+                for (let i = 0; i < length; i++) {
+                    this.vehicles.push({ 
+                        label: data[i].name, 
+                        code: data[i].code 
+                    });
+                    this.geo.push({ 
+                        lat: data[i].lat, 
+                        lng: data[i].lng,
+                        code: data[i].code  
+                    });
+                }
+              })
+              .catch(error => {console.log(error)})            
         },
         methods: {
             setSelected: function(selected) {
-                this.waypoints[1].lat = this.geo[selected.code][0].lat;
-                this.waypoints[1].lng = this.geo[selected.code][0].lng;
+                const route = this.geo.find(obj => obj.code === selected.code);
+                
+                this.waypoints[0].lat = route.lat;
+                this.waypoints[0].lng = route.lng;
+                
+//                console.log(`lat:${route.lat} lng:${route.lng}`);
                 this.key++;
             }
         }
@@ -157,12 +95,12 @@
     #select {
         position: absolute;
         bottom: 0;
-        left: 0;
+        right: 0;
         z-index: 999;
         background-color: rgba(255,255,255,0.7);
         padding: 10px;
-        height: 230px;
-        width: 200px;
+        height: 500px;
+        width: 300px;
     }
     * {
         color: #555;

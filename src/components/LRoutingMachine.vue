@@ -72,7 +72,7 @@
                     ...(routeDragInterval && { routeDragInterval }),
                     ...(fitSelectedRoutes && { fitSelectedRoutes }),
                     ...(routeWhileDragging && { routeWhileDragging }),
-                    serviceUrl: "http://192.168.1",
+                    serviceUrl: "http://192.168.1.2:5000/route/v1",
                     language: 'ru',
                 };
                 const { mapObject } = this.parentContainer;
